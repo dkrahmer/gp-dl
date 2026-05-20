@@ -1023,7 +1023,7 @@ def _download_individual_album_items(
             downloaded_path = temp_dir_path / downloaded_file
             downloaded_name = downloaded_path.name
 
-            if bootstrap_from_filename:
+            if bootstrap_from_filename and downloaded_path.suffix.casefold() not in {".zip", ".html", ".htm"}:
                 matched_existing = _find_existing_album_file_for_filename(
                     output_path,
                     album_title,
