@@ -464,7 +464,7 @@ def _capture_download_failure_artifacts(
         safe_id = re.sub(r"[^A-Za-z0-9._-]+", "_", google_id) or "item"
         ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
         artifact_dir = (
-            output_path / ".gp-dl-failures" / safe_album / f"{ts}_{safe_id}"
+            output_path / ".gp-sync-failures" / safe_album / f"{ts}_{safe_id}"
         ).resolve()
         artifact_dir.mkdir(parents=True, exist_ok=True)
 

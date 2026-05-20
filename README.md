@@ -63,7 +63,7 @@ If you want to use your signed-in Chrome session for private albums, add `--prof
 
 ### As a module
 ```py
-from gp_dl import download_albums
+from gp_sync import download_albums
 successful_albums, failed_albums, album_times, album_item_counts, album_file_counts, album_stats = download_albums(["ALBUM_URL", "ALBUM_URL2"], output_dir="test")
 ```
 
@@ -71,13 +71,13 @@ successful_albums, failed_albums, album_times, album_item_counts, album_file_cou
 
 ## Package layout
 
-- `gp_dl/workflow.py` — top-level flows (`download_albums`, `list_albums`, `login`)
-- `gp_dl/browser.py` — Selenium driver/session setup and download-file detection helpers
-- `gp_dl/config.py` — runtime config and locale label loading
-- `gp_dl/parsing.py` — filename/ID/media parsing helpers
-- `gp_dl/manifest.py` — Google ID manifest read/write helpers
-- `gp_dl/local_state.py` — local filesystem/state helpers
-- `gp_dl/google_photos_ui.py` — Google Photos UI automation helpers
-- `gp_dl/sync.py` — item download/delete sync helpers
-- `gp_dl/core.py` — compatibility import surface for internals
-- `gp_dl/lib.py` — public compatibility façade (`download_albums`, `list_albums`, etc.)
+- `gp_sync/workflow.py` — top-level flows (`download_albums`, `list_albums`, `login`)
+- `gp_sync/browser.py` — Selenium driver/session setup and download-file detection helpers
+- `gp_sync/config.py` — runtime config and locale label loading
+- `gp_sync/parsing.py` — filename/ID/media parsing helpers
+- `gp_sync/manifest.py` — Google ID manifest read/write helpers
+- `gp_sync/local_state.py` — local filesystem/state helpers
+- `gp_sync/google_photos_ui.py` — Google Photos UI automation helpers
+- `gp_sync/sync.py` — item download/delete sync helpers
+- `gp_sync/core.py` — compatibility import surface for internals
+- `gp_sync/lib.py` — public compatibility façade (`download_albums`, `list_albums`, etc.)

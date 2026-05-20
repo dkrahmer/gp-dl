@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-GOOGLE_ID_MANIFEST_FILENAME = ".gp-dl-google-ids.json"
+GOOGLE_ID_MANIFEST_FILENAME = ".gp-sync-google-ids.json"
 
 
 def _manifest_path(album_dir: Path) -> Path:

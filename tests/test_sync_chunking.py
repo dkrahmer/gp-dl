@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from gp_dl import sync
-from gp_dl.manifest import GOOGLE_ID_MANIFEST_FILENAME
+from gp_sync import sync
+from gp_sync.manifest import GOOGLE_ID_MANIFEST_FILENAME
 
 
 class ChunkedAlbumSyncTests(unittest.TestCase):
