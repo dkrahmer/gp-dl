@@ -176,6 +176,57 @@ class MotionPhotoFallbackTests(unittest.TestCase):
         self.assertEqual((downloaded, skipped, failed), (0, 1, 0))
         record_mock.assert_called_once()
 
+    def test_motion_photo_fallback_reuses_existing_downloaded_filename(self):
+        driver = FakeDriver()
+        item_url = "https://photos.google.com/photo/AF1Qip-motion"
+
+        with (
+            tempfile.TemporaryDirectory() as output_dir,
+            tempfile.TemporaryDirectory() as temp_dir,
+        ):
+            output_path = Path(output_dir)
+            temp_dir_path = Path(temp_dir)
+            album_dir = output_path / "Album"
+            album_dir.mkdir(parents=True, exist_ok=True)
+            existing_file = album_dir / "IMG20260317110022_01.jpg"
+            existing_file.write_bytes(b"existing image")
+
+            def fake_download_motion_photo_still(*args, **kwargs):
+                (temp_dir_path / "IMG20260317110022_01.jpg").write_bytes(
+                    b"duplicate image"
+                )
+                return "IMG20260317110022_01.jpg"
+
+            with (
+                patch.object(sync, "MOTION_PHOTO_DIRECT_SAVE_ONLY", True),
+                patch.object(sync, "_is_motion_photo_page", return_value=True),
+                patch.object(
+                    sync, "_photo_image_download_url", return_value="stale-url"
+                ),
+                patch.object(
+                    sync,
+                    "_download_motion_photo_still",
+                    side_effect=fake_download_motion_photo_still,
+                ),
+                patch.object(sync, "_record_google_id_file") as record_mock,
+            ):
+                downloaded, skipped, failed = sync._download_individual_album_items(
+                    driver,
+                    [
+                        {
+                            "google_id": "AF1Qip-motion",
+                            "url": item_url,
+                            "identifiers": "Motion photo - Landscape - Mar 17, 2026, 1:13:45 PM",
+                        }
+                    ],
+                    "Album",
+                    output_path,
+                    temp_dir_path,
+                )
+
+        self.assertEqual((downloaded, skipped, failed), (0, 1, 0))
+        record_mock.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

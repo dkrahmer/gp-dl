@@ -1194,6 +1194,28 @@ def _download_individual_album_items(
                     failed_count += 1
                     continue
 
+            existing_filename_match = _find_existing_album_file_for_filename(
+                output_path,
+                album_title,
+                downloaded_name,
+                exclude_paths={downloaded_path.resolve()},
+                allowed_paths=trusted_existing_paths,
+            )
+            if existing_filename_match is not None:
+                _record_google_id_for_existing_path(
+                    album_dirs,
+                    google_id,
+                    existing_filename_match,
+                    target_album_dir,
+                    output_path,
+                )
+                logging.info(
+                    f"Matched existing file by filename after download for Google Photos item {google_id}: {existing_filename_match}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
+                )
+                skipped_count += 1
+                _best_effort_unlink(downloaded_path, "downloaded file")
+                continue
+
             if _path_conflicts_case_insensitive(resolved_target):
                 conflicting_path = _find_conflicting_file_case_insensitive(
                     resolved_target
