@@ -482,11 +482,19 @@ def _is_motion_photo_page(driver, timeout: float = 0.0) -> bool:
     deadline = time.perf_counter() + timeout
     while True:
         try:
-            if driver.find_elements(
+            controls = driver.find_elements(
                 By.XPATH,
                 '//*[@aria-label="Turn on motion" or @aria-label="Turn off motion"]',
-            ):
-                return True
+            )
+            for control in controls:
+                try:
+                    if not control.is_displayed():
+                        continue
+                    if control.rect.get("width", 0) <= 0 or control.rect.get("height", 0) <= 0:
+                        continue
+                    return True
+                except Exception:
+                    continue
         except Exception:
             return False
 

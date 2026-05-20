@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import logging
 import os
 import re
@@ -6,11 +7,16 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import unquote, urlparse
+from urllib.request import Request, urlopen
 
 from .browser import find_completed_download_file
 from .config import WEB_DRIVER_WAIT
 from .google_photos_ui import (
     _collect_album_photo_items,
+    _is_motion_photo_page,
+    _photo_image_download_url,
     _start_download_with_keyboard_shortcut,
     _wait_for_download_start,
 )
@@ -28,10 +34,14 @@ from .manifest import (
     _save_google_id_manifest,
 )
 from .parsing import (
+    _download_response_filename,
     _extract_google_id_from_filename,
     _extract_media_filenames,
     _normalize_filename,
 )
+
+
+MOTION_PHOTO_DIRECT_SAVE_ONLY = False
 
 
 def _filename_with_google_id_suffix(filename: str, google_id: str) -> str:
@@ -102,6 +112,141 @@ def _move_download_file_with_retries(
         f"Could not move downloaded file for Google Photos item {google_id} from {source} to {target}: {last_error}"
     )
     return False
+
+
+def _download_motion_photo_still(
+    driver,
+    temp_dir_path: Path,
+    google_id: str,
+    item_url: str | None = None,
+    timeout: float | None = None,
+) -> str | None:
+    original_rect = None
+    try:
+        try:
+            if item_url and item_url != driver.current_url:
+                driver.get(item_url)
+        except Exception:
+            pass
+
+        time.sleep(0.5)
+
+        try:
+            original_rect = driver.get_window_rect()
+        except Exception:
+            original_rect = None
+
+        try:
+            driver.set_window_rect(width=3000, height=3000)
+        except Exception:
+            try:
+                driver.set_window_size(3000, 3000)
+            except Exception as e:
+                logging.debug(
+                    f"Could not resize browser window for motion photo fallback {google_id}: {e}"
+                )
+
+        time.sleep(0.5)
+
+        image_url = _photo_image_download_url(
+            driver, timeout=timeout if timeout is not None else 3.0
+        )
+        if not image_url:
+            logging.error(
+                f"Could not determine motion photo image URL for Google Photos item {google_id}."
+            )
+            return None
+
+        headers = {"Referer": driver.current_url}
+        try:
+            user_agent = driver.execute_script("return navigator.userAgent")
+            if user_agent:
+                headers["User-Agent"] = str(user_agent)
+        except Exception:
+            pass
+
+        try:
+            cookies = driver.get_cookies() or []
+            cookie_header = "; ".join(
+                f"{cookie.get('name')}={cookie.get('value')}"
+                for cookie in cookies
+                if cookie.get("name") is not None and cookie.get("value") is not None
+            )
+            if cookie_header:
+                headers["Cookie"] = cookie_header
+        except Exception:
+            pass
+
+        request = Request(image_url, headers=headers)
+        timeout_seconds = timeout if timeout is not None else 10.0
+
+        with urlopen(request, timeout=timeout_seconds) as response:
+            filename = _download_response_filename(response)
+            if not filename:
+                filename = os.path.basename(urlparse(response.geturl()).path)
+
+            if not filename:
+                content_type = response.headers.get_content_type()
+                guessed_extension = mimetypes.guess_extension(content_type or "") or ".jpg"
+                filename = f"{google_id}{guessed_extension}"
+            else:
+                filename = os.path.basename(unquote(filename.strip().strip('"')))
+                if not Path(filename).suffix:
+                    content_type = response.headers.get_content_type()
+                    guessed_extension = mimetypes.guess_extension(content_type or "") or ".jpg"
+                    filename = f"{filename}{guessed_extension}"
+
+            temp_dir_path.mkdir(parents=True, exist_ok=True)
+            save_path = _ensure_unique_path((temp_dir_path / filename).resolve())
+            with save_path.open("wb") as output_file:
+                shutil.copyfileobj(response, output_file)
+
+            logging.info(f"Saved motion photo still directly from page as {save_path.name}")
+            return save_path.name
+    except (HTTPError, URLError, OSError) as e:
+        logging.error(
+            f"Could not save motion photo still for Google Photos item {google_id}: {e}"
+        )
+        return None
+    finally:
+        if original_rect:
+            try:
+                driver.set_window_rect(
+                    x=original_rect.get("x", 0),
+                    y=original_rect.get("y", 0),
+                    width=original_rect.get("width", 0),
+                    height=original_rect.get("height", 0),
+                )
+            except Exception:
+                try:
+                    driver.set_window_size(
+                        original_rect.get("width", 0), original_rect.get("height", 0)
+                    )
+                except Exception:
+                    pass
+
+
+def _motion_photo_page_looks_broken(driver) -> bool:
+    try:
+        title = (driver.title or "").casefold()
+    except Exception:
+        title = ""
+
+    try:
+        current_url = (driver.current_url or "").casefold()
+    except Exception:
+        current_url = ""
+
+    try:
+        body_text = driver.execute_script(
+            "return document.body ? document.body.innerText : '';"
+        )
+        body_text = str(body_text or "").casefold()
+    except Exception:
+        body_text = ""
+
+    haystack = " ".join([title, current_url, body_text])
+    return "500" in haystack and ("error" in haystack or "server" in haystack)
 
 
 def _find_conflicting_file_case_insensitive(path: Path) -> Path | None:
@@ -599,6 +744,8 @@ def _download_individual_album_items(
         )
         downloaded_path: Path | None = None
         try:
+            global MOTION_PHOTO_DIRECT_SAVE_ONLY
+
             files_by_google_id, _ = _local_album_google_id_files(output_path, album_title)
             existing_with_id = files_by_google_id.get(google_id.casefold(), [])
             if existing_with_id:
@@ -661,44 +808,124 @@ def _download_individual_album_items(
             driver.get(item["url"])
             _prepare_download_focus(driver, google_id)
 
+            motion_photo_page = _is_motion_photo_page(driver, timeout=0.5)
+            if motion_photo_page:
+                if MOTION_PHOTO_DIRECT_SAVE_ONLY:
+                    logging.info(
+                        f"Motion photo controls detected for Google Photos item {google_id}; using direct save fallback for this session."
+                    )
+                    downloaded_file = _download_motion_photo_still(
+                        driver,
+                        temp_dir_path,
+                        google_id,
+                        item_url=item["url"],
+                        timeout=3.0,
+                    )
+                    if not downloaded_file:
+                        failed_count += 1
+                        continue
+                    motion_photo_page = False
+                else:
+                    logging.info(
+                        f"Motion photo controls detected for Google Photos item {google_id}."
+                    )
+
             download_started = False
-            for attempt in range(1, 4):
+            if motion_photo_page and not MOTION_PHOTO_DIRECT_SAVE_ONLY:
                 triggered = _start_download_with_keyboard_shortcut(driver)
-                if triggered and _wait_for_download_start(
-                    temp_dir_path,
-                    {p.name for p in existing_download_files},
-                    timeout=max(6.0, float(WEB_DRIVER_WAIT)),
-                ):
-                    download_started = True
-                    break
-                logging.debug(
-                    f"Keyboard shortcut attempt {attempt}/3 did not start a download for Google Photos item {google_id}."
+                broken_motion_page = _motion_photo_page_looks_broken(driver)
+                download_started = bool(
+                    triggered
+                    and not broken_motion_page
+                    and _wait_for_download_start(
+                        temp_dir_path,
+                        {p.name for p in existing_download_files},
+                        timeout=2.0,
+                    )
                 )
-                time.sleep(0.35)
+                if not download_started:
+                    MOTION_PHOTO_DIRECT_SAVE_ONLY = True
+                    if broken_motion_page:
+                        logging.info(
+                            f"Motion photo download hit the Google Photos error screen for item {google_id}; using direct save fallback for this session."
+                        )
+                    else:
+                        logging.info(
+                            f"Motion photo download failed for Google Photos item {google_id}; using direct save fallback for this session."
+                        )
+                    downloaded_file = _download_motion_photo_still(
+                        driver,
+                        temp_dir_path,
+                        google_id,
+                        item_url=item["url"],
+                        timeout=3.0,
+                    )
+                    if not downloaded_file:
+                        failed_count += 1
+                        continue
+                else:
+                    downloaded_file = None
+                    deadline = time.perf_counter() + 4.0
+                    while time.perf_counter() < deadline and not downloaded_file:
+                        downloaded_file = find_completed_download_file(
+                            str(temp_dir_path), {p.name for p in existing_download_files}
+                        )
+                        time.sleep(0.1)
 
-            if not download_started:
-                logging.error(
-                    f"Could not start individual download for Google Photos item {google_id} using keyboard shortcut (Shift+D)."
-                )
-                _capture_download_failure_artifacts(
-                    driver,
-                    output_path,
-                    album_title,
-                    google_id,
-                    "download_not_started_shift_d",
-                    item.get("url", ""),
-                    temp_dir_path,
-                )
-                failed_count += 1
-                continue
+                    if not downloaded_file:
+                        MOTION_PHOTO_DIRECT_SAVE_ONLY = True
+                        logging.info(
+                            f"Motion photo download stalled for Google Photos item {google_id}; using direct save fallback for this session."
+                        )
+                        downloaded_file = _download_motion_photo_still(
+                            driver,
+                            temp_dir_path,
+                            google_id,
+                            item_url=item["url"],
+                            timeout=3.0,
+                        )
+                        if not downloaded_file:
+                            failed_count += 1
+                            continue
+            else:
+                download_started = False
+                for attempt in range(1, 4):
+                    triggered = _start_download_with_keyboard_shortcut(driver)
+                    if triggered and _wait_for_download_start(
+                        temp_dir_path,
+                        {p.name for p in existing_download_files},
+                        timeout=max(6.0, float(WEB_DRIVER_WAIT)),
+                    ):
+                        download_started = True
+                        break
+                    logging.debug(
+                        f"Keyboard shortcut attempt {attempt}/3 did not start a download for Google Photos item {google_id}."
+                    )
+                    time.sleep(0.35)
 
-            downloaded_file = None
-            deadline = time.perf_counter() + max(WEB_DRIVER_WAIT, 10) * 12
-            while time.perf_counter() < deadline and not downloaded_file:
-                downloaded_file = find_completed_download_file(
-                    str(temp_dir_path), {p.name for p in existing_download_files}
-                )
-                time.sleep(0.1)
+                if not download_started:
+                    logging.error(
+                        f"Could not start individual download for Google Photos item {google_id} using keyboard shortcut (Shift+D)."
+                    )
+                    _capture_download_failure_artifacts(
+                        driver,
+                        output_path,
+                        album_title,
+                        google_id,
+                        "download_not_started_shift_d",
+                        item.get("url", ""),
+                        temp_dir_path,
+                    )
+                    failed_count += 1
+                    continue
+
+                downloaded_file = None
+                deadline = time.perf_counter() + max(WEB_DRIVER_WAIT, 10) * 12
+                while time.perf_counter() < deadline and not downloaded_file:
+                    downloaded_file = find_completed_download_file(
+                        str(temp_dir_path), {p.name for p in existing_download_files}
+                    )
+                    time.sleep(0.1)
 
             if not downloaded_file:
                 logging.error(
