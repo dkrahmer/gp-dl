@@ -103,14 +103,10 @@ def _move_download_file_with_retries(
             return True
         except OSError as e:
             last_error = e
-            logging.debug(
-                f"Could not move downloaded file for Google Photos item {google_id} (attempt {attempt}/{retries}) from {source} to {target}: {e}"
-            )
+            logging.debug(f"Could not move downloaded file for Google Photos item {google_id} (attempt {attempt}/{retries}) from {source} to {target}: {e}")
             time.sleep(delay)
 
-    logging.error(
-        f"Could not move downloaded file for Google Photos item {google_id} from {source} to {target}: {last_error}"
-    )
+    logging.error(f"Could not move downloaded file for Google Photos item {google_id} from {source} to {target}: {last_error}")
     return False
 
 
@@ -207,19 +203,13 @@ def _download_motion_photo_still(
                 try:
                     driver.set_window_size(3000, 3000)
                 except Exception as e:
-                    logging.debug(
-                        f"Could not resize browser window for motion photo fallback {google_id}: {e}"
-                    )
+                    logging.debug(f"Could not resize browser window for motion photo fallback {google_id}: {e}")
 
             time.sleep(0.5)
 
-            image_url = _photo_image_download_url(
-                driver, timeout=timeout if timeout is not None else 3.0
-            )
+            image_url = _photo_image_download_url(driver, timeout=timeout if timeout is not None else 3.0)
             if not image_url:
-                logging.error(
-                    f"Could not determine motion photo image URL for Google Photos item {google_id}."
-                )
+                logging.error(f"Could not determine motion photo image URL for Google Photos item {google_id}.")
                 return None
 
         if referer_url is None:
@@ -258,17 +248,13 @@ def _download_motion_photo_still(
 
             if not filename:
                 content_type = response.headers.get_content_type()
-                guessed_extension = (
-                    mimetypes.guess_extension(content_type or "") or ".jpg"
-                )
+                guessed_extension = (mimetypes.guess_extension(content_type or "") or ".jpg")
                 filename = f"{google_id}{guessed_extension}"
             else:
                 filename = os.path.basename(unquote(filename.strip().strip('"')))
                 if not Path(filename).suffix:
                     content_type = response.headers.get_content_type()
-                    guessed_extension = (
-                        mimetypes.guess_extension(content_type or "") or ".jpg"
-                    )
+                    guessed_extension = (mimetypes.guess_extension(content_type or "") or ".jpg")
                     filename = f"{filename}{guessed_extension}"
 
             temp_dir_path.mkdir(parents=True, exist_ok=True)
@@ -276,14 +262,10 @@ def _download_motion_photo_still(
             with save_path.open("wb") as output_file:
                 shutil.copyfileobj(response, output_file)
 
-            logging.info(
-                f"Saved motion photo still directly from page as {save_path.name}"
-            )
+            logging.info(f"Saved motion photo still directly from page as {save_path.name}")
             return save_path.name
     except (HTTPError, URLError, OSError) as e:
-        logging.error(
-            f"Could not save motion photo still for Google Photos item {google_id}: {e}"
-        )
+        logging.error(f"Could not save motion photo still for Google Photos item {google_id}: {e}")
         return None
     finally:
         if original_rect:
@@ -296,9 +278,7 @@ def _download_motion_photo_still(
                 )
             except Exception:
                 try:
-                    driver.set_window_size(
-                        original_rect.get("width", 0), original_rect.get("height", 0)
-                    )
+                    driver.set_window_size(original_rect.get("width", 0), original_rect.get("height", 0))
                 except Exception:
                     pass
 
@@ -315,9 +295,7 @@ def _motion_photo_page_looks_broken(driver) -> bool:
         current_url = ""
 
     try:
-        body_text = driver.execute_script(
-            "return document.body ? document.body.innerText : '';"
-        )
+        body_text = driver.execute_script("return document.body ? document.body.innerText : '';")
         body_text = str(body_text or "").casefold()
     except Exception:
         body_text = ""
@@ -365,9 +343,7 @@ def _find_existing_album_file_for_filename(
 ) -> Path | None:
     normalized = _normalized_match_filename(filename)
     files_by_name, _ = _local_album_files_by_normalized_name(output_path, album_title)
-    for candidate in sorted(
-        files_by_name.get(normalized, []), key=_path_match_priority
-    ):
+    for candidate in sorted(files_by_name.get(normalized, []), key=_path_match_priority):
         resolved = candidate.resolve()
         if exclude_paths and resolved in exclude_paths:
             continue
@@ -445,9 +421,7 @@ def _prepare_download_focus(driver, google_id: str) -> None:
             """
         )
     except Exception as e:
-        logging.debug(
-            f"Could not prepare focus for Google Photos item {google_id}: {e}"
-        )
+        logging.debug(f"Could not prepare focus for Google Photos item {google_id}: {e}")
 
 
 def _capture_download_failure_artifacts(
@@ -553,19 +527,13 @@ def _capture_download_failure_artifacts(
         try:
             if temp_dir_path.exists() and temp_dir_path.is_dir():
                 names = sorted(path.name for path in temp_dir_path.iterdir())
-                download_dir_snapshot_path.write_text(
-                    "\n".join(names), encoding="utf-8"
-                )
+                download_dir_snapshot_path.write_text("\n".join(names), encoding="utf-8")
             else:
-                download_dir_snapshot_path.write_text(
-                    "<missing download directory>", encoding="utf-8"
-                )
+                download_dir_snapshot_path.write_text("<missing download directory>", encoding="utf-8")
         except Exception as e:
             logging.debug(f"Could not snapshot download directory for {google_id}: {e}")
 
-        logging.error(
-            f"Captured failure artifacts for Google Photos item {google_id} at {artifact_dir}"
-        )
+        logging.error(f"Captured failure artifacts for Google Photos item {google_id} at {artifact_dir}")
     except Exception as e:
         logging.debug(f"Could not capture failure artifacts for {google_id}: {e}")
 
@@ -695,13 +663,9 @@ def _ensure_album_manifest_mappings(
     )
     target_album_dir.mkdir(parents=True, exist_ok=True)
 
-    files_by_name, album_dirs = _local_album_files_by_normalized_name(
-        output_path, album_title
-    )
+    files_by_name, album_dirs = _local_album_files_by_normalized_name(output_path, album_title)
     files_by_google_id, _ = _local_album_google_id_files(output_path, album_title)
-    manifest_has_entries = any(
-        _load_google_id_manifest(album_dir) for album_dir in album_dirs
-    )
+    manifest_has_entries = any(_load_google_id_manifest(album_dir) for album_dir in album_dirs)
     assigned_paths = {
         path.resolve()
         for paths in files_by_google_id.values()
@@ -750,15 +714,11 @@ def _ensure_album_manifest_mappings(
         if any(path.exists() and path.is_file() for path in existing_paths):
             continue
 
-        candidate_filenames = _extract_media_filenames(
-            str(item.get("identifiers", "") or "")
-        )
+        candidate_filenames = _extract_media_filenames(str(item.get("identifiers", "") or ""))
         matched_existing = None
         for filename in candidate_filenames:
             normalized = _normalized_match_filename(filename)
-            candidate_paths = sorted(
-                files_by_name.get(normalized, []), key=_path_match_priority
-            )
+            candidate_paths = sorted(files_by_name.get(normalized, []), key=_path_match_priority)
             for path in candidate_paths:
                 resolved = path.resolve()
                 if resolved in assigned_paths:
@@ -809,43 +769,31 @@ def _download_individual_album_items(
     skipped_count = 0
     failed_count = 0
 
-    files_by_name, album_dirs = _local_album_files_by_normalized_name(
-        output_path, album_title
-    )
+    files_by_name, album_dirs = _local_album_files_by_normalized_name(output_path, album_title)
     consumed_name_match_paths: set[Path] = set()
 
     for item in items:
         google_id = item["google_id"]
-        existing_download_files = (
-            set(temp_dir_path.iterdir()) if temp_dir_path.is_dir() else set()
-        )
+        existing_download_files = (set(temp_dir_path.iterdir()) if temp_dir_path.is_dir() else set())
         existing_download_names = {p.name for p in existing_download_files}
         existing_download_snapshot = _snapshot_completed_files(temp_dir_path)
         downloaded_path: Path | None = None
         try:
             global MOTION_PHOTO_DIRECT_SAVE_ONLY
 
-            files_by_google_id, _ = _local_album_google_id_files(
-                output_path, album_title
-            )
+            files_by_google_id, _ = _local_album_google_id_files(output_path, album_title)
             existing_with_id = files_by_google_id.get(google_id.casefold(), [])
             if existing_with_id:
-                logging.info(
-                    f"Skipping Google Photos item {google_id}; already saved as {existing_with_id[0]}"
-                )
+                logging.info(f"Skipping Google Photos item {google_id}; already saved as {existing_with_id[0]}")
                 skipped_count += 1
                 continue
 
-            candidate_filenames = _extract_media_filenames(
-                str(item.get("identifiers", "") or "")
-            )
+            candidate_filenames = _extract_media_filenames(str(item.get("identifiers", "") or ""))
             if candidate_filenames:
                 matched_existing = None
                 for filename in sorted(candidate_filenames):
                     normalized = _normalized_match_filename(filename)
-                    candidate_paths = sorted(
-                        files_by_name.get(normalized, []), key=_path_match_priority
-                    )
+                    candidate_paths = sorted(files_by_name.get(normalized, []), key=_path_match_priority)
                     for path in candidate_paths:
                         resolved = path.resolve()
                         if not resolved.exists() or not resolved.is_file():
@@ -868,9 +816,7 @@ def _download_individual_album_items(
                         target_album_dir,
                         output_path,
                     )
-                    logging.info(
-                        f"Matched existing file before download for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                    )
+                    logging.info(f"Matched existing file before download for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                     skipped_count += 1
                     continue
 
@@ -883,9 +829,7 @@ def _download_individual_album_items(
                 matched_existing = None
                 for filename in candidate_filenames:
                     normalized = _normalized_match_filename(filename)
-                    paths = sorted(
-                        files_by_name.get(normalized, []), key=_path_match_priority
-                    )
+                    paths = sorted(files_by_name.get(normalized, []), key=_path_match_priority)
                     for path in paths:
                         resolved = path.resolve()
                         if (
@@ -914,9 +858,7 @@ def _download_individual_album_items(
                         target_album_dir,
                         output_path,
                     )
-                    logging.info(
-                        f"Matched existing file by filename for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                    )
+                    logging.info(f"Matched existing file by filename for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                     skipped_count += 1
                     continue
 
@@ -926,15 +868,11 @@ def _download_individual_album_items(
 
             downloaded_file = None
             motion_photo_still_url = None
-            motion_photo_page = not _item_looks_like_video(item) and _is_motion_photo_page(
-                driver, timeout=0.5
-            )
+            motion_photo_page = not _item_looks_like_video(item) and _is_motion_photo_page(driver, timeout=0.5)
             if motion_photo_page:
                 motion_photo_still_url = _photo_image_download_url(driver, timeout=3.0)
                 if MOTION_PHOTO_DIRECT_SAVE_ONLY:
-                    logging.info(
-                        f"Motion photo controls detected for Google Photos item {google_id}; using direct save fallback for this session."
-                    )
+                    logging.info(f"Motion photo controls detected for Google Photos item {google_id}; using direct save fallback for this session.")
                     # In direct-save-only mode we are not recovering from a just-failed
                     # Shift+D on the same page, so prefer a fresh per-item URL lookup to
                     # avoid reusing a stale image element from the previous item.
@@ -951,9 +889,7 @@ def _download_individual_album_items(
                         failed_count += 1
                         continue
                 else:
-                    logging.info(
-                        f"Motion photo controls detected for Google Photos item {google_id}."
-                    )
+                    logging.info(f"Motion photo controls detected for Google Photos item {google_id}.")
 
             download_started = False
             if downloaded_file:
@@ -973,13 +909,9 @@ def _download_individual_album_items(
                 if not download_started:
                     MOTION_PHOTO_DIRECT_SAVE_ONLY = True
                     if broken_motion_page:
-                        logging.info(
-                            f"Motion photo download hit the Google Photos error screen for item {google_id}; using direct save fallback for this session."
-                        )
+                        logging.info(f"Motion photo download hit the Google Photos error screen for item {google_id}; using direct save fallback for this session.")
                     else:
-                        logging.info(
-                            f"Motion photo download failed for Google Photos item {google_id}; using direct save fallback for this session."
-                        )
+                        logging.info(f"Motion photo download failed for Google Photos item {google_id}; using direct save fallback for this session.")
                     downloaded_file = _download_motion_photo_still(
                         driver,
                         temp_dir_path,
@@ -1007,9 +939,7 @@ def _download_individual_album_items(
 
                     if not downloaded_file:
                         MOTION_PHOTO_DIRECT_SAVE_ONLY = True
-                        logging.info(
-                            f"Motion photo download stalled for Google Photos item {google_id}; using direct save fallback for this session."
-                        )
+                        logging.info(f"Motion photo download stalled for Google Photos item {google_id}; using direct save fallback for this session.")
                         downloaded_file = _download_motion_photo_still(
                             driver,
                             temp_dir_path,
@@ -1033,15 +963,11 @@ def _download_individual_album_items(
                     ):
                         download_started = True
                         break
-                    logging.debug(
-                        f"Keyboard shortcut attempt {attempt}/3 did not start a download for Google Photos item {google_id}."
-                    )
+                    logging.debug(f"Keyboard shortcut attempt {attempt}/3 did not start a download for Google Photos item {google_id}.")
                     time.sleep(0.35)
 
                 if not download_started:
-                    logging.info(
-                        f"Retrying keyboard download start for Google Photos item {google_id} after reloading the item page."
-                    )
+                    logging.debug(f"Retrying keyboard download start for Google Photos item {google_id} after reloading the item page.")
                     driver.get(item["url"])
                     _prepare_download_focus(driver, google_id)
                     for attempt in range(1, 3):
@@ -1053,15 +979,11 @@ def _download_individual_album_items(
                         ):
                             download_started = True
                             break
-                        logging.debug(
-                            f"Keyboard shortcut reload retry {attempt}/2 did not start a download for Google Photos item {google_id}."
-                        )
+                        logging.debug(f"Keyboard shortcut reload retry {attempt}/2 did not start a download for Google Photos item {google_id}.")
                         time.sleep(0.35)
 
                     if not download_started:
-                        logging.error(
-                            f"Could not start individual download for Google Photos item {google_id} using keyboard shortcut (Shift+D)."
-                        )
+                        logging.error(f"Could not start individual download for Google Photos item {google_id} using keyboard shortcut (Shift+D).")
                         _capture_download_failure_artifacts(
                             driver,
                             output_path,
@@ -1085,9 +1007,7 @@ def _download_individual_album_items(
                     time.sleep(0.1)
 
             if not downloaded_file:
-                logging.error(
-                    f"Timed out waiting for individual download for Google Photos item {google_id}"
-                )
+                logging.error(f"Timed out waiting for individual download for Google Photos item {google_id}")
                 _capture_download_failure_artifacts(
                     driver,
                     output_path,
@@ -1119,9 +1039,7 @@ def _download_individual_album_items(
                         target_album_dir,
                         output_path,
                     )
-                    logging.info(
-                        f"Matched existing file after download by filename for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                    )
+                    logging.info(f"Matched existing file after download by filename for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                     skipped_count += 1
                     _best_effort_unlink(downloaded_path, "downloaded file")
                     continue
@@ -1130,31 +1048,23 @@ def _download_individual_album_items(
             resolved_target = (target_album_dir / target_name).resolve()
 
             if not _is_path_within(resolved_target, output_path):
-                logging.error(
-                    f"Skipping downloaded file with unsafe path: {target_name}"
-                )
+                logging.error(f"Skipping downloaded file with unsafe path: {target_name}")
                 failed_count += 1
                 continue
 
             if downloaded_path.suffix.casefold() in {".zip", ".html", ".htm"}:
-                logging.warning(
-                    f"Detected unsupported download format for Google Photos item {google_id}; retrying."
-                )
+                logging.warning(f"Detected unsupported download format for Google Photos item {google_id}; retrying.")
                 _best_effort_unlink(downloaded_path, "downloaded file")
 
                 unsupported_format_retry_succeeded = False
                 for format_retry_attempt in range(1, 3):
-                    logging.info(
-                        f"Retrying download for Google Photos item {google_id} after unsupported format (attempt {format_retry_attempt}/2)."
-                    )
+                    logging.info(f"Retrying download for Google Photos item {google_id} after unsupported format (attempt {format_retry_attempt}/2).")
                     driver.get(item["url"])
                     _prepare_download_focus(driver, google_id)
                     time.sleep(0.5)
 
                     # Reset download tracking for this retry
-                    existing_download_files = (
-                        set(temp_dir_path.iterdir()) if temp_dir_path.is_dir() else set()
-                    )
+                    existing_download_files = (set(temp_dir_path.iterdir()) if temp_dir_path.is_dir() else set())
                     existing_download_names_retry = {p.name for p in existing_download_files}
                     existing_download_snapshot_retry = _snapshot_completed_files(temp_dir_path)
 
@@ -1177,23 +1087,17 @@ def _download_individual_album_items(
                     if retry_download_file:
                         retry_download_path = temp_dir_path / retry_download_file
                         if retry_download_path.suffix.casefold() not in {".zip", ".html", ".htm"}:
-                            logging.info(
-                                f"Retry succeeded for Google Photos item {google_id}; file has valid format."
-                            )
+                            logging.info(f"Retry succeeded for Google Photos item {google_id}; file has valid format.")
                             downloaded_file = retry_download_file
                             downloaded_path = retry_download_path
                             unsupported_format_retry_succeeded = True
                             break
                         else:
-                            logging.debug(
-                                f"Retry attempt {format_retry_attempt}/2 still has unsupported format for Google Photos item {google_id}."
-                            )
+                            logging.debug(f"Retry attempt {format_retry_attempt}/2 still has unsupported format for Google Photos item {google_id}.")
                             _best_effort_unlink(retry_download_path, "downloaded file")
 
                 if not unsupported_format_retry_succeeded:
-                    logging.error(
-                        f"Refusing unsupported download format for Google Photos item {google_id} after retry."
-                    )
+                    logging.error(f"Refusing unsupported download format for Google Photos item {google_id} after retry.")
                     failed_count += 1
                     continue
 
@@ -1212,20 +1116,14 @@ def _download_individual_album_items(
                     target_album_dir,
                     output_path,
                 )
-                logging.info(
-                    f"Matched existing file by filename after download for Google Photos item {google_id}: {existing_filename_match}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                )
+                logging.info(f"Matched existing file by filename after download for Google Photos item {google_id}: {existing_filename_match}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                 skipped_count += 1
                 _best_effort_unlink(downloaded_path, "downloaded file")
                 continue
 
             if _path_conflicts_case_insensitive(resolved_target):
-                conflicting_path = _find_conflicting_file_case_insensitive(
-                    resolved_target
-                )
-                files_by_google_id, _ = _local_album_google_id_files(
-                    output_path, album_title
-                )
+                conflicting_path = _find_conflicting_file_case_insensitive(resolved_target)
+                files_by_google_id, _ = _local_album_google_id_files(output_path, album_title)
                 path_to_google_ids: dict[Path, set[str]] = {}
                 for existing_google_id, existing_paths in files_by_google_id.items():
                     for existing_path in existing_paths:
@@ -1235,9 +1133,7 @@ def _download_individual_album_items(
                             or not resolved_existing.is_file()
                         ):
                             continue
-                        path_to_google_ids.setdefault(resolved_existing, set()).add(
-                            existing_google_id
-                        )
+                        path_to_google_ids.setdefault(resolved_existing, set()).add(existing_google_id)
 
                 if bootstrap_from_filename:
                     bootstrap_match = _find_existing_album_file_for_filename(
@@ -1263,28 +1159,20 @@ def _download_individual_album_items(
                             target_album_dir,
                             output_path,
                         )
-                        logging.info(
-                            f"Matched existing file by bootstrap filename collision for Google Photos item {google_id}: {bootstrap_match}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                        )
+                        logging.info(f"Matched existing file by bootstrap filename collision for Google Photos item {google_id}: {bootstrap_match}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                         skipped_count += 1
                         _best_effort_unlink(downloaded_path, "downloaded file")
                         continue
 
-                    target_name = _filename_with_google_id_suffix(
-                        downloaded_name, google_id
-                    )
+                    target_name = _filename_with_google_id_suffix(downloaded_name, google_id)
                     resolved_target = (target_album_dir / target_name).resolve()
                     if not _is_path_within(resolved_target, output_path):
-                        logging.error(
-                            f"Skipping downloaded file with unsafe path: {target_name}"
-                        )
+                        logging.error(f"Skipping downloaded file with unsafe path: {target_name}")
                         failed_count += 1
                         _best_effort_unlink(downloaded_path, "downloaded file")
                         continue
                     resolved_target = _ensure_unique_path(resolved_target)
-                    logging.debug(
-                        f"No trusted pre-existing filename match found for Google Photos item {google_id} during bootstrap collision; saving as {resolved_target.name}."
-                    )
+                    logging.debug(f"No trusted pre-existing filename match found for Google Photos item {google_id} during bootstrap collision; saving as {resolved_target.name}.")
 
                     if not _move_download_file_with_retries(
                         downloaded_path, resolved_target, google_id
@@ -1293,22 +1181,16 @@ def _download_individual_album_items(
                         continue
 
                     final_name = resolved_target.name
-                    _record_google_id_file(
-                        target_album_dir, google_id, resolved_target, output_path
-                    )
+                    _record_google_id_file(target_album_dir, google_id, resolved_target, output_path)
                     if final_name != downloaded_name:
-                        logging.info(
-                            f"Saved individual download as {final_name} (renamed from {downloaded_name})"
-                        )
+                        logging.info(f"Saved individual download as {final_name} (renamed from {downloaded_name})")
                     else:
                         logging.info(f"Saved individual download as {final_name}")
                     downloaded_count += 1
                     continue
 
                 if conflicting_path is not None:
-                    owner_ids = path_to_google_ids.get(
-                        conflicting_path.resolve(), set()
-                    )
+                    owner_ids = path_to_google_ids.get(conflicting_path.resolve(), set())
                     if not owner_ids or google_id.casefold() in owner_ids:
                         _record_google_id_for_existing_path(
                             album_dirs,
@@ -1317,28 +1199,20 @@ def _download_individual_album_items(
                             target_album_dir,
                             output_path,
                         )
-                        logging.info(
-                            f"Matched existing file by filename collision for Google Photos item {google_id}: {conflicting_path}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-                        )
+                        logging.info(f"Matched existing file by filename collision for Google Photos item {google_id}: {conflicting_path}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
                         skipped_count += 1
                         _best_effort_unlink(downloaded_path, "downloaded file")
                         continue
 
-                target_name = _filename_with_google_id_suffix(
-                    downloaded_name, google_id
-                )
+                target_name = _filename_with_google_id_suffix(downloaded_name, google_id)
                 resolved_target = (target_album_dir / target_name).resolve()
                 if not _is_path_within(resolved_target, output_path):
-                    logging.error(
-                        f"Skipping downloaded file with unsafe path: {target_name}"
-                    )
+                    logging.error(f"Skipping downloaded file with unsafe path: {target_name}")
                     failed_count += 1
                     _best_effort_unlink(downloaded_path, "downloaded file")
                     continue
                 resolved_target = _ensure_unique_path(resolved_target)
-                logging.debug(
-                    f"Filename collision for Google Photos item {google_id}; saving as {resolved_target.name}"
-                )
+                logging.debug(f"Filename collision for Google Photos item {google_id}; saving as {resolved_target.name}")
 
             if not _move_download_file_with_retries(
                 downloaded_path, resolved_target, google_id
@@ -1347,29 +1221,21 @@ def _download_individual_album_items(
                 continue
 
             final_name = resolved_target.name
-            _record_google_id_file(
-                target_album_dir, google_id, resolved_target, output_path
-            )
+            _record_google_id_file(target_album_dir, google_id, resolved_target, output_path)
             if final_name != downloaded_name:
-                logging.info(
-                    f"Saved individual download as {final_name} (renamed from {downloaded_name})"
-                )
+                logging.info(f"Saved individual download as {final_name} (renamed from {downloaded_name})")
             else:
                 logging.info(f"Saved individual download as {final_name}")
             downloaded_count += 1
         except Exception as e:
             if "tab crashed" in str(e).lower():
-                logging.warning(
-                    f"Chrome tab crashed for Google Photos item {google_id}; restarting browser..."
-                )
+                logging.warning(f"Chrome tab crashed for Google Photos item {google_id}; restarting browser...")
                 try:
                     driver = restart_driver()
                     logging.info("Browser restarted successfully after tab crash.")
                 except Exception as restart_err:
                     logging.error(f"Failed to restart browser after tab crash: {restart_err}")
-            logging.error(
-                f"Individual sync failed for Google Photos item {google_id}; continuing with next item. Error: {e}"
-            )
+            logging.error(f"Individual sync failed for Google Photos item {google_id}; continuing with next item. Error: {e}")
             failed_count += 1
             _best_effort_unlink(downloaded_path, "downloaded file")
             continue
@@ -1398,9 +1264,7 @@ def _propagate_album_deletes(
     album_google_ids: set[str],
     delete_without_google_id: bool = True,
 ) -> int:
-    files_by_google_id, album_dirs = _local_album_google_id_files(
-        output_path, album_title
-    )
+    files_by_google_id, album_dirs = _local_album_google_id_files(output_path, album_title)
     deleted_count = 0
 
     manifest_listed_paths: set[Path] = set()
@@ -1420,9 +1284,7 @@ def _propagate_album_deletes(
         for path in paths:
             resolved = path.resolve()
             if resolved in manifest_listed_paths:
-                logging.info(
-                    f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}"
-                )
+                logging.info(f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}")
                 continue
             if _delete_local_album_file(resolved, output_path, "missing from album"):
                 deleted_count += 1
@@ -1431,9 +1293,7 @@ def _propagate_album_deletes(
         for path in _local_album_files_without_google_id(output_path, album_title):
             resolved = path.resolve()
             if resolved in manifest_listed_paths:
-                logging.info(
-                    f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}"
-                )
+                logging.info(f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}")
                 continue
             if _delete_local_album_file(resolved, output_path, "without Google ID"):
                 deleted_count += 1
@@ -1475,30 +1335,22 @@ def _download_missing_album_items_by_google_id(
         for item in chunk_items:
             all_album_items[item["google_id"]] = item
 
-        logging.info(
-            f"Collected album item chunk {chunk_index} for [{album_title}]: {len(chunk_items)} new item(s), {len(all_album_items)} total discovered."
-        )
+        logging.info(f"Collected album item chunk {chunk_index} for [{album_title}]: {len(chunk_items)} new item(s), {len(all_album_items)} total discovered.")
 
         if len(chunk_items) < ALBUM_SYNC_CHUNK_SIZE:
             break
 
     album_items = list(all_album_items.values())
     if not album_items:
-        logging.info(
-            "Could not collect individual Google Photos item links; individual sync cannot proceed."
-        )
+        logging.info("Could not collect individual Google Photos item links; individual sync cannot proceed.")
         return False, 0, 0, 0, 0, 0
 
     album_dirs = _album_output_dirs(output_path, album_title)
-    manifest_present_initially = any(
-        (album_dir / GOOGLE_ID_MANIFEST_FILENAME).exists() for album_dir in album_dirs
-    )
+    manifest_present_initially = any((album_dir / GOOGLE_ID_MANIFEST_FILENAME).exists() for album_dir in album_dirs)
 
     trusted_existing_paths: set[Path] | None = None
     if not manifest_present_initially:
-        files_by_name_bootstrap, _ = _local_album_files_by_normalized_name(
-            output_path, album_title
-        )
+        files_by_name_bootstrap, _ = _local_album_files_by_normalized_name(output_path, album_title)
         trusted_existing_paths = {
             path.resolve()
             for paths in files_by_name_bootstrap.values()
@@ -1514,14 +1366,10 @@ def _download_missing_album_items_by_google_id(
         trusted_existing_paths=trusted_existing_paths,
     )
 
-    files_by_google_id, album_dirs = _local_album_google_id_files(
-        output_path, album_title
-    )
+    files_by_google_id, album_dirs = _local_album_google_id_files(output_path, album_title)
 
     if not manifest_present_initially:
-        files_by_name, _ = _local_album_files_by_normalized_name(
-            output_path, album_title
-        )
+        files_by_name, _ = _local_album_files_by_normalized_name(output_path, album_title)
         claimed_paths = {
             path.resolve()
             for paths in files_by_google_id.values()
@@ -1540,15 +1388,11 @@ def _download_missing_album_items_by_google_id(
             if google_id.casefold() in files_by_google_id:
                 continue
 
-            candidate_filenames = _extract_media_filenames(
-                str(item.get("identifiers", "") or "")
-            )
+            candidate_filenames = _extract_media_filenames(str(item.get("identifiers", "") or ""))
             matched_existing = None
             for filename in sorted(candidate_filenames):
                 normalized = _normalized_match_filename(filename)
-                candidate_paths = sorted(
-                    files_by_name.get(normalized, []), key=_path_match_priority
-                )
+                candidate_paths = sorted(files_by_name.get(normalized, []), key=_path_match_priority)
                 for path in candidate_paths:
                     resolved = path.resolve()
                     if (
@@ -1577,9 +1421,7 @@ def _download_missing_album_items_by_google_id(
                 target_album_dir,
                 output_path,
             )
-            logging.info(
-                f"Matched existing file before download for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
-            )
+            logging.info(f"Matched existing file before download for Google Photos item {google_id}: {matched_existing}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}.")
             claimed_paths.add(matched_existing)
 
         files_by_google_id, _ = _local_album_google_id_files(output_path, album_title)
@@ -1588,9 +1430,7 @@ def _download_missing_album_items_by_google_id(
     album_google_ids = {item["google_id"].casefold() for item in album_items}
 
     if propagate_deletes and not manifest_present_initially:
-        logging.info(
-            f"Skipping delete propagation for files without Google ID in album [{album_title}] because {GOOGLE_ID_MANIFEST_FILENAME} did not exist before this run."
-        )
+        logging.info(f"Skipping delete propagation for files without Google ID in album [{album_title}] because {GOOGLE_ID_MANIFEST_FILENAME} did not exist before this run.")
 
     deleted_count = (
         _propagate_album_deletes(
@@ -1610,9 +1450,7 @@ def _download_missing_album_items_by_google_id(
     ]
     existing_count = len(album_items) - len(missing_items)
 
-    logging.info(
-        f"Album [{album_title}] contains {len(album_items)} Google Photos item(s): {existing_count} already saved by Google ID, {len(missing_items)} missing."
-    )
+    logging.info(f"Album [{album_title}] contains {len(album_items)} Google Photos item(s): {existing_count} already saved by Google ID, {len(missing_items)} missing.")
 
     if not missing_items:
         if not manifest_present_initially:
@@ -1632,16 +1470,12 @@ def _download_missing_album_items_by_google_id(
         chunk = missing_items[start : start + ALBUM_SYNC_CHUNK_SIZE]
         chunk_number = (start // ALBUM_SYNC_CHUNK_SIZE) + 1
         if chunk_number > 1 or total_chunks > 1:
-            logging.info(
-                f"Restarting browser before chunk {chunk_number}/{total_chunks} for [{album_title}]."
-            )
+            logging.info(f"Restarting browser before chunk {chunk_number}/{total_chunks} for [{album_title}].")
             try:
                 driver = restart_driver()
             except Exception as restart_err:
                 logging.error(f"Failed to restart browser before chunk {chunk_number}: {restart_err}")
-        logging.info(
-            f"Processing album download chunk {chunk_number}/{total_chunks} for [{album_title}] with {len(chunk)} item(s)."
-        )
+        logging.info(f"Processing album download chunk {chunk_number}/{total_chunks} for [{album_title}] with {len(chunk)} item(s).")
         downloaded_count, skipped_count, failed_count = _download_individual_album_items(
             driver,
             chunk,
