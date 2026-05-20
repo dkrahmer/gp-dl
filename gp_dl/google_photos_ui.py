@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -450,14 +449,7 @@ def _start_download_with_keyboard_shortcut(driver) -> bool:
         body = WebDriverWait(driver, max(1, min(WEB_DRIVER_WAIT, 5))).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
-        try:
-            body.click()
-        except Exception:
-            pass
-
-        ActionChains(driver).move_to_element(body).click(body).key_down(
-            Keys.SHIFT
-        ).send_keys("d").key_up(Keys.SHIFT).perform()
+        body.send_keys(Keys.SHIFT, "d")
         return True
     except Exception as first_error:
         logging.debug(f"Primary keyboard shortcut attempt failed: {first_error}")
@@ -465,10 +457,6 @@ def _start_download_with_keyboard_shortcut(driver) -> bool:
     try:
         active = driver.execute_script("return document.activeElement")
         if active is not None:
-            try:
-                active.click()
-            except Exception:
-                pass
             active.send_keys(Keys.SHIFT, "d")
             return True
     except Exception as second_error:
