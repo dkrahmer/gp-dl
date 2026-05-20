@@ -191,7 +191,7 @@ def download_albums(
             )
         except Exception as e:
             logging.error(
-                f"Individual sync failed for {album_title}; ZIP fallback is disabled. Error: {e}"
+                f"Individual sync failed for {album_title}. Error: {e}"
             )
             failed_albums.append(album_title)
             duration = time.perf_counter() - album_start
@@ -219,7 +219,7 @@ def download_albums(
 
         if not handled:
             logging.error(
-                f"Could not collect item links for {album_title}; ZIP fallback is disabled."
+                f"Could not collect item links for {album_title}."
             )
             failed_albums.append(album_title)
             duration = time.perf_counter() - album_start

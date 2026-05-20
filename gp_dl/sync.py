@@ -719,7 +719,7 @@ def _download_individual_album_items(
 
         if downloaded_path.suffix.casefold() == ".zip":
             logging.error(
-                f"Refusing ZIP download for Google Photos item {google_id}; ZIP downloads are disabled."
+                f"Refusing unsupported download format for Google Photos item {google_id}."
             )
             failed_count += 1
             if downloaded_path.exists():
