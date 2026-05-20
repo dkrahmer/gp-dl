@@ -44,7 +44,6 @@ from .parsing import (
 MOTION_PHOTO_DIRECT_SAVE_ONLY = False
 ALBUM_SYNC_CHUNK_SIZE = 100
 
-
 def _filename_with_google_id_suffix(filename: str, google_id: str) -> str:
     path = Path(filename)
     return f"{path.stem}__gp-{google_id}{path.suffix}"
