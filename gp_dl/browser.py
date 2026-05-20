@@ -37,6 +37,17 @@ def reset_driver():
     __driver_download_dir__ = None
 
 
+def _apply_download_behavior(driver, download_dir: str) -> None:
+    try:
+        Path(download_dir).mkdir(parents=True, exist_ok=True)
+        driver.execute_cdp_cmd(
+            "Page.setDownloadBehavior",
+            {"behavior": "allow", "downloadPath": str(Path(download_dir).resolve())},
+        )
+    except Exception as e:
+        logging.debug(f"Could not apply CDP download behavior to {download_dir}: {e}")
+
+
 def setup_driver(driver_path=None, profile_dir=None, headless=True, download_dir=None):
     chrome_options = Options()
     if CHROME_BINARY:
@@ -62,26 +73,64 @@ def setup_driver(driver_path=None, profile_dir=None, headless=True, download_dir
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
+    resolved_download_dir = str(
+        Path(download_dir or os.path.join(os.getcwd(), "gp_temp")).resolve()
+    )
+    Path(resolved_download_dir).mkdir(parents=True, exist_ok=True)
+
     if driver_path:
         service = ChromeService(executable_path=driver_path)
-        return Chrome(options=chrome_options, service=service)
+        driver = Chrome(options=chrome_options, service=service)
     else:
-        return Chrome(options=chrome_options)
+        driver = Chrome(options=chrome_options)
+
+    _apply_download_behavior(driver, resolved_download_dir)
+    return driver
 
 
 def find_completed_download_file(temp_dir: str, exclude: set[str] | None = None):
-    for file in os.listdir(temp_dir):
+    temp_dir_path = Path(temp_dir)
+    try:
+        files = os.listdir(temp_dir)
+    except FileNotFoundError:
+        logging.debug(
+            f"Download directory does not exist yet while waiting for completed download: {temp_dir_path}"
+        )
+        temp_dir_path.mkdir(parents=True, exist_ok=True)
+        return None
+    except OSError as e:
+        logging.debug(
+            f"Could not read download directory while waiting for completed download {temp_dir_path}: {e}"
+        )
+        return None
+
+    for file in files:
         if exclude is not None and file in exclude:
             continue
         if file.endswith((".crdownload", ".tmp")):
             continue
-        if (Path(temp_dir) / file).is_file():
+        if (temp_dir_path / file).is_file():
             return file
 
 
 def find_started_download_file(temp_dir: str, exclude: set[str] | None = None):
-    for file in os.listdir(temp_dir):
+    temp_dir_path = Path(temp_dir)
+    try:
+        files = os.listdir(temp_dir)
+    except FileNotFoundError:
+        logging.debug(
+            f"Download directory does not exist yet while waiting for download start: {temp_dir_path}"
+        )
+        temp_dir_path.mkdir(parents=True, exist_ok=True)
+        return None
+    except OSError as e:
+        logging.debug(
+            f"Could not read download directory while waiting for download start {temp_dir_path}: {e}"
+        )
+        return None
+
+    for file in files:
         if exclude is not None and file in exclude:
             continue
-        if (Path(temp_dir) / file).is_file():
+        if (temp_dir_path / file).is_file():
             return file
