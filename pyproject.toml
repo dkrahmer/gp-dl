@@ -1,7 +1,7 @@
 [project]
-name = "gp-dl"
-version = "0.5.0"
-description = "A Python-based Google Photos sync downloader built with Selenium."
+name = "gp-sync"
+version = "0.1.0"
+description = "A Python-based Google Photos album sync tool built with Selenium."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL v3" }
@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 [project.scripts]
-gp-dl = "gp_dl.cli:run_cli"
+gp-sync = "gp_dl.cli:run_cli"
 
 [build-system]
 requires = ["setuptools>=61.0"]

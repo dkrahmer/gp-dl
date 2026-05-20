@@ -1,8 +1,10 @@
-# Google Photos Downloader
+# gp-sync
 
-**A Python-based Google Photos downloader built with Selenium.**
+**A Python-based Google Photos album sync tool built with Selenium.**
 
-This tool automates syncing photos and videos from Google Photos albums by simulating user interaction with the web interface. It uses Selenium to open album links, discover album items by Google ID, and download only missing items into local album folders.
+Based on gp-dl.
+
+This tool syncs photos and videos from Google Photos albums by simulating user interaction with the web interface. It uses Selenium to open album links, discover album items by Google ID, and download only missing items into local album folders.
 
 ## Features
 
@@ -16,9 +18,9 @@ This tool automates syncing photos and videos from Google Photos albums by simul
 
 **The original Google Photos API is deprecated**. While the **Google Picker API** is still available, it comes with several major limitations:
 
-* You must select each photo manually, no "select all" option, meaning it can not be automated.
+* You must select each photo manually, with no "select all" option, which means it cannot be automated.
 * Limited to a maximum number of items
-* It requires setting up a Google Cloud project and API credentials, which is pretty hard.
+* It requires setting up a Google Cloud project and API credentials, which adds significant setup overhead.
 
 ## Disclaimer
 
@@ -28,29 +30,12 @@ This tool automates syncing photos and videos from Google Photos albums by simul
 
 ## Installation
 
-`pip install gp-dl`
-
-## Run from a fresh clone (Bash)
-
-This is the one setup path for development on Windows.
-
-Open Git Bash in the repo root, the folder that contains `pyproject.toml`, then run:
-
-```bash
-python -m venv .venv
-source .venv/Scripts/activate
-python -m pip install --upgrade pip
-pip install -e .
-mkdir -p test1
-python -m gp_dl.cli --album-urls ALBUM_URL1 ALBUM_URL2 --output-dir test1
-```
-
-If you want to use your signed-in Chrome session for private albums, add `--profile-dir` with your Chrome user data folder.
+`pip install gp-sync`
 
 ## Usage
 
 ### CLI
-`python -m gp_dl.cli --album-urls ALBUM_URL ALBUM_URL2 --output-dir test`
+`gp-sync --album-urls ALBUM_URL ALBUM_URL2 --output-dir test`
 
 By default, the CLI runs headless. Add `--show-browser` to run with a visible browser window.
 
@@ -58,6 +43,23 @@ Optional flags:
 - `--profile-dir` for private/non-shared albums using your Chrome profile
 - `--propagate-deletes` to remove local ID-tagged files no longer present in the album
 - `--temp-dir` to override the temporary download directory
+
+## Run from source (Bash)
+
+This is the one setup path for development on Windows.
+
+Open Git Bash in the repo root, the folder that contains `pyproject.toml`, then run:
+
+```bash
+python3 -m venv .venv
+source .venv/Scripts/activate
+python3 -m pip install --upgrade pip
+pip install -e .
+mkdir -p test1
+python3 -m gp_sync.cli --album-urls ALBUM_URL1 ALBUM_URL2 --output-dir test1
+```
+
+If you want to use your signed-in Chrome session for private albums, add `--profile-dir` with your Chrome user data folder.
 
 ### As a module
 ```py

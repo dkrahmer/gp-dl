@@ -11,17 +11,17 @@ except ImportError:
     from workflow import download_albums, list_albums
 
 BANNER = """
-██████   ██████         ██████  ██
-██       ██   ██        ██   ██ ██
-██   ███ ██████   █████ ██   ██ ██
-██    ██ ██             ██   ██ ██
-██████   ██             ██████  ███████
+ ██████  ██████        ███████ ██    ██ ███    ██  ██████
+██       ██   ██       ██       ██  ██  ████   ██ ██
+██   ███ ██████  █████ ███████   ████   ██ ██  ██ ██
+██    ██ ██                 ██    ██    ██  ██ ██ ██
+ ██████  ██            ███████    ██    ██   ████  ██████
 
-gp-dl — Google Photos Downloader
-Sync download full-resolution albums from Google Photos using Selenium
+gp-sync — Google Photos Synchronizer
+Sync full-resolution Google Photos albums with Selenium.
+Based on gp-dl.
 
 Author: dkrahmer  |  GitHub: https://github.com/dkrahmer
-Original author: csd4ni3l  |  GitHub: https://github.com/csd4ni3l
 """
 
 LOG_LEVELS = {
@@ -35,7 +35,7 @@ LOG_LEVELS = {
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(
-        description="Sync download full-resolution images from a Google Photos album using Selenium."
+        description="Sync full-resolution media from Google Photos albums using Selenium."
     )
     parser.add_argument("--album-urls", nargs="+", help="Google Photos album URL(s)")
     parser.add_argument(
