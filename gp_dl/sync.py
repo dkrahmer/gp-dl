@@ -198,7 +198,7 @@ def _download_motion_photo_still(
             filename = _download_response_filename(response)
             if not filename:
                 logging.debug(
-                    f"Could not determine Google-provided filename for motion photo item {google_id}; refusing to infer a filename or extension from the rendered image URL."
+                    f"Could not determine Google-provided filename for direct image download of Google Photos item {google_id}; refusing to infer a filename or extension from the rendered image URL."
                 )
                 return None
 
@@ -223,7 +223,7 @@ def _download_motion_photo_still(
                             target_album_dir, google_id, existing_target, output_path
                         )
                         logging.info(
-                            f"Matched existing motion photo still by filename for Google Photos item {google_id}: {existing_target}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
+                            f"Matched existing file by filename for direct image download of Google Photos item {google_id}: {existing_target}. Added mapping to {GOOGLE_ID_MANIFEST_FILENAME}."
                         )
                         return existing_target
 
@@ -237,11 +237,11 @@ def _download_motion_photo_still(
                 resolved_target = _ensure_unique_path(resolved_target)
                 if bootstrap_from_filename:
                     logging.debug(
-                        f"No trusted pre-existing filename match found for motion photo item {google_id} during bootstrap collision; saving as {resolved_target.name}."
+                        f"No trusted pre-existing filename match found for direct image download of Google Photos item {google_id} during bootstrap collision; saving as {resolved_target.name}."
                     )
                 else:
                     logging.debug(
-                        f"Filename collision for motion photo item {google_id}; saving as {resolved_target.name}"
+                        f"Filename collision for direct image download of Google Photos item {google_id}; saving as {resolved_target.name}"
                     )
 
             temp_target = resolved_target.with_suffix(f"{resolved_target.suffix}.tmp")
@@ -251,7 +251,7 @@ def _download_motion_photo_still(
             _record_google_id_file(
                 target_album_dir, google_id, resolved_target, output_path
             )
-            logging.info(f"Saved motion photo still to {resolved_target}")
+            logging.info(f"Saved direct image download to {resolved_target}")
             return resolved_target
     except Exception as e:
         logging.debug(
@@ -589,7 +589,7 @@ def _download_individual_album_items(
                     downloaded_count += 1
                     continue
                 logging.debug(
-                    f"Direct still download did not work for motion photo item {google_id}; falling back to Google Photos download controls."
+                    f"Direct image download did not work for Google Photos item {google_id}; falling back to Google Photos download controls."
                 )
 
         download_started = _start_download_with_keyboard_shortcut(
