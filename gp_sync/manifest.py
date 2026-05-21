@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-GOOGLE_ID_MANIFEST_FILENAME = ".gp-dl-google-ids.json"
+GOOGLE_ID_MANIFEST_FILENAME = ".gp-sync-google-ids.json"
 
 
 def _manifest_path(album_dir: Path) -> Path:
@@ -37,9 +37,12 @@ def _load_google_id_manifest(album_dir: Path) -> dict[str, str]:
 
 def _save_google_id_manifest(album_dir: Path, manifest: dict[str, str]) -> None:
     path = _manifest_path(album_dir)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
     try:
-        with open(path, "w", encoding="utf-8") as manifest_file:
+        with open(tmp_path, "w", encoding="utf-8") as manifest_file:
             json.dump({"google_ids": manifest}, manifest_file, indent=2, sort_keys=True)
             manifest_file.write("\n")
+        # Atomically replace the old file with the new one
+        tmp_path.replace(path)
     except OSError as e:
         logging.debug(f"Could not write Google ID manifest {path}: {e}")

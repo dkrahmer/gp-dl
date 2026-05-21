@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from gp_dl import sync
+from gp_sync import sync
 
 
 class FakeDriver:

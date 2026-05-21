@@ -1,8 +1,10 @@
-# Google Photos Downloader
+# gp-sync
 
-**A Python-based Google Photos downloader built with Selenium.**
+**A Python-based Google Photos album sync tool built with Selenium.**
 
-This tool automates syncing photos and videos from Google Photos albums by simulating user interaction with the web interface. It uses Selenium to open album links, discover album items by Google ID, and download only missing items into local album folders.
+Based on gp-dl.
+
+This tool syncs photos and videos from Google Photos albums by simulating user interaction with the web interface. It uses Selenium to open album links, discover album items by Google ID, and download only missing items into local album folders.
 
 ## Features
 
@@ -16,9 +18,9 @@ This tool automates syncing photos and videos from Google Photos albums by simul
 
 **The original Google Photos API is deprecated**. While the **Google Picker API** is still available, it comes with several major limitations:
 
-* You must select each photo manually, no "select all" option, meaning it can not be automated.
+* You must select each photo manually, with no "select all" option, which means it cannot be automated.
 * Limited to a maximum number of items
-* It requires setting up a Google Cloud project and API credentials, which is pretty hard.
+* It requires setting up a Google Cloud project and API credentials, which adds significant setup overhead.
 
 ## Disclaimer
 
@@ -28,29 +30,12 @@ This tool automates syncing photos and videos from Google Photos albums by simul
 
 ## Installation
 
-`pip install gp-dl`
-
-## Run from a fresh clone (Bash)
-
-This is the one setup path for development on Windows.
-
-Open Git Bash in the repo root, the folder that contains `pyproject.toml`, then run:
-
-```bash
-python -m venv .venv
-source .venv/Scripts/activate
-python -m pip install --upgrade pip
-pip install -e .
-mkdir -p test1
-python -m gp_dl.cli --album-urls ALBUM_URL1 ALBUM_URL2 --output-dir test1
-```
-
-If you want to use your signed-in Chrome session for private albums, add `--profile-dir` with your Chrome user data folder.
+`pip install gp-sync`
 
 ## Usage
 
 ### CLI
-`python -m gp_dl.cli --album-urls ALBUM_URL ALBUM_URL2 --output-dir test`
+`gp-sync --album-urls ALBUM_URL ALBUM_URL2 --output-dir test`
 
 By default, the CLI runs headless. Add `--show-browser` to run with a visible browser window.
 
@@ -59,9 +44,26 @@ Optional flags:
 - `--propagate-deletes` to remove local ID-tagged files no longer present in the album
 - `--temp-dir` to override the temporary download directory
 
+## Run from source (Bash)
+
+This is the one setup path for development on Windows.
+
+Open Git Bash in the repo root, the folder that contains `pyproject.toml`, then run:
+
+```bash
+python3 -m venv .venv
+source .venv/Scripts/activate
+python3 -m pip install --upgrade pip
+pip install -e .
+mkdir -p test1
+python3 -m gp_sync.cli --album-urls ALBUM_URL1 ALBUM_URL2 --output-dir test1
+```
+
+If you want to use your signed-in Chrome session for private albums, add `--profile-dir` with your Chrome user data folder.
+
 ### As a module
 ```py
-from gp_dl import download_albums
+from gp_sync import download_albums
 successful_albums, failed_albums, album_times, album_item_counts, album_file_counts, album_stats = download_albums(["ALBUM_URL", "ALBUM_URL2"], output_dir="test")
 ```
 
@@ -69,13 +71,13 @@ successful_albums, failed_albums, album_times, album_item_counts, album_file_cou
 
 ## Package layout
 
-- `gp_dl/workflow.py` — top-level flows (`download_albums`, `list_albums`, `login`)
-- `gp_dl/browser.py` — Selenium driver/session setup and download-file detection helpers
-- `gp_dl/config.py` — runtime config and locale label loading
-- `gp_dl/parsing.py` — filename/ID/media parsing helpers
-- `gp_dl/manifest.py` — Google ID manifest read/write helpers
-- `gp_dl/local_state.py` — local filesystem/state helpers
-- `gp_dl/google_photos_ui.py` — Google Photos UI automation helpers
-- `gp_dl/sync.py` — item download/delete sync helpers
-- `gp_dl/core.py` — compatibility import surface for internals
-- `gp_dl/lib.py` — public compatibility façade (`download_albums`, `list_albums`, etc.)
+- `gp_sync/workflow.py` — top-level flows (`download_albums`, `list_albums`, `login`)
+- `gp_sync/browser.py` — Selenium driver/session setup and download-file detection helpers
+- `gp_sync/config.py` — runtime config and locale label loading
+- `gp_sync/parsing.py` — filename/ID/media parsing helpers
+- `gp_sync/manifest.py` — Google ID manifest read/write helpers
+- `gp_sync/local_state.py` — local filesystem/state helpers
+- `gp_sync/google_photos_ui.py` — Google Photos UI automation helpers
+- `gp_sync/sync.py` — item download/delete sync helpers
+- `gp_sync/core.py` — compatibility import surface for internals
+- `gp_sync/lib.py` — public compatibility façade (`download_albums`, `list_albums`, etc.)
