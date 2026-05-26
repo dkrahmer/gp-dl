@@ -59,7 +59,7 @@ class ChunkedAlbumSyncTests(unittest.TestCase):
                 patch.object(sync, "_album_output_dirs", return_value=[album_dir]),
                 patch.object(sync, "_ensure_album_manifest_mappings"),
                 patch.object(sync, "_local_album_google_id_files", return_value=({}, [album_dir])),
-                patch.object(sync, "_propagate_album_deletes", return_value=0),
+                patch.object(sync, "_remove_deleted_album_items", return_value=0),
                 patch.object(sync, "_rewrite_full_album_manifest"),
                 patch.object(sync, "_cleanup_bootstrap_plain_duplicates"),
                 patch.object(sync, "_download_individual_album_items", side_effect=fake_download_items),
@@ -70,7 +70,7 @@ class ChunkedAlbumSyncTests(unittest.TestCase):
                         album_title=album_title,
                         output_path=output_path,
                         temp_dir_path=temp_dir_path,
-                        propagate_deletes=False,
+                        keep_deleted=True,
                     )
                 )
 

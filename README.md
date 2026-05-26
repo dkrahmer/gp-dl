@@ -41,7 +41,7 @@ By default, the CLI runs headless. Add `--show-browser` to run with a visible br
 
 Optional flags:
 - `--profile-dir` for private/non-shared albums using your Chrome profile
-- `--propagate-deletes` to remove local ID-tagged files no longer present in the album
+- `--keep-deleted` to keep local ID-tagged files that are no longer in the album (by default they are removed)
 - `--temp-dir` to override the temporary download directory
 
 ## Run from source (Bash)

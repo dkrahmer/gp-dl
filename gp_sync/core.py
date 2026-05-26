@@ -69,7 +69,7 @@ from .sync import (
     _download_individual_album_items,
     _download_missing_album_items_by_google_id,
     _download_motion_photo_still,
-    _propagate_album_deletes,
+    _remove_deleted_album_items,
 )
 from .workflow import download_albums, download_all_albums, list_albums, login
 
