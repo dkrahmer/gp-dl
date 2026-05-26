@@ -1258,11 +1258,10 @@ def _delete_local_album_file(path: Path, output_path: Path, reason: str) -> bool
         return False
 
 
-def _propagate_album_deletes(
+def _remove_deleted_album_items(
     output_path: Path,
     album_title: str,
     album_google_ids: set[str],
-    delete_without_google_id: bool = True,
 ) -> int:
     files_by_google_id, album_dirs = _local_album_google_id_files(output_path, album_title)
     deleted_count = 0
@@ -1275,25 +1274,24 @@ def _propagate_album_deletes(
             if _delete_local_album_file(resolved, output_path, "missing from album"):
                 deleted_count += 1
 
-    if delete_without_google_id:
-        manifest_listed_paths: set[Path] = set()
-        for album_dir in album_dirs:
-            manifest = _load_google_id_manifest(album_dir)
-            for filename in manifest.values():
-                resolved = (album_dir / filename).resolve()
-                if not resolved.exists() or not resolved.is_file():
-                    continue
-                if not _is_path_within(resolved, output_path):
-                    continue
-                manifest_listed_paths.add(resolved)
-
-        for path in _local_album_files_without_google_id(output_path, album_title):
-            resolved = path.resolve()
-            if resolved in manifest_listed_paths:
-                logging.info(f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}")
+    manifest_listed_paths: set[Path] = set()
+    for album_dir in album_dirs:
+        manifest = _load_google_id_manifest(album_dir)
+        for filename in manifest.values():
+            resolved = (album_dir / filename).resolve()
+            if not resolved.exists() or not resolved.is_file():
                 continue
-            if _delete_local_album_file(resolved, output_path, "without Google ID"):
-                deleted_count += 1
+            if not _is_path_within(resolved, output_path):
+                continue
+            manifest_listed_paths.add(resolved)
+
+    for path in _local_album_files_without_google_id(output_path, album_title):
+        resolved = path.resolve()
+        if resolved in manifest_listed_paths:
+            logging.info(f"Keeping local file listed in {GOOGLE_ID_MANIFEST_FILENAME}: {resolved}")
+            continue
+        if _delete_local_album_file(resolved, output_path, "without Google ID"):
+            deleted_count += 1
 
     for album_dir in album_dirs:
         manifest = _load_google_id_manifest(album_dir)
@@ -1312,7 +1310,7 @@ def _propagate_album_deletes(
         if deleted_count
         else "nothing to delete."
     )
-    logging.info(f"Propagated album deletes for {album_title}: {result}")
+    logging.info(f"Removed local files deleted from album {album_title}: {result}")
     return deleted_count
 
 
@@ -1321,7 +1319,7 @@ def _download_missing_album_items_by_google_id(
     album_title: str,
     output_path: Path,
     temp_dir_path: Path,
-    propagate_deletes: bool,
+    keep_deleted: bool = False,
 ) -> tuple[bool, int, int, int, int, int]:
     all_album_items: dict[str, dict[str, str]] = {}
     total_downloaded = 0
@@ -1438,18 +1436,10 @@ def _download_missing_album_items_by_google_id(
     existing_google_ids = set(files_by_google_id)
     album_google_ids = {item["google_id"].casefold() for item in album_items}
 
-    if propagate_deletes and not manifest_present_initially:
-        logging.info(f"Skipping delete propagation for files without Google ID in album [{album_title}] because {GOOGLE_ID_MANIFEST_FILENAME} did not exist before this run.")
-
     deleted_count = (
-        _propagate_album_deletes(
-            output_path,
-            album_title,
-            album_google_ids,
-            delete_without_google_id=manifest_present_initially,
-        )
-        if propagate_deletes
-        else 0
+        0
+        if keep_deleted
+        else _remove_deleted_album_items(output_path, album_title, album_google_ids)
     )
 
     missing_items = [

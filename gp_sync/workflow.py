@@ -94,6 +94,7 @@ def download_all_albums(
     output_dir: str | None = None,
     driver_path: str | None = None,
     headless=True,
+    keep_deleted: bool = False,
 ):
     if output_dir is None:
         logging.fatal("No output_dir has been defined, cannot download albums.")
@@ -115,6 +116,7 @@ def download_all_albums(
         driver_path=driver_path,
         profile_dir=profile_dir,
         headless=headless,
+        keep_deleted=keep_deleted,
     )
 
 
@@ -125,7 +127,7 @@ def download_albums(
     profile_dir: str | None = None,
     headless: bool = True,
     temp_dir: str | None = None,
-    propagate_deletes: bool = False,
+    keep_deleted: bool = False,
 ) -> tuple[
     list[str],
     list[str],
@@ -138,6 +140,7 @@ def download_albums(
     Download missing media items from one or more Google Photos albums using Selenium.
 
     Downloads run in ID-based sync mode by default: items already present locally by Google ID are skipped.
+    Local files for items removed from the album are deleted by default; pass keep_deleted=True to retain them.
     """
 
     temp_dir = temp_dir or output_dir
@@ -193,7 +196,7 @@ def download_albums(
                 album_title,
                 output_path,
                 downloads_dir,
-                propagate_deletes,
+                keep_deleted=keep_deleted,
             )
         except Exception as e:
             logging.error(

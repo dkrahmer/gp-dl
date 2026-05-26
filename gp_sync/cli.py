@@ -33,7 +33,7 @@ LOG_LEVELS = {
 }
 
 
-def parse_cli_args():
+def parse_cli_args(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description="Sync full-resolution media from Google Photos albums using Selenium."
     )
@@ -60,9 +60,9 @@ def parse_cli_args():
     )
     parser.add_argument("--password", default=None, help="Google user password")
     parser.add_argument(
-        "--propagate-deletes",
+        "--keep-deleted",
         action="store_true",
-        help="Delete local ID-tagged media files for this album when their Google Photos item is no longer in the album",
+        help="Keep local ID-tagged media files when their Google Photos item is no longer in the album (default is to delete them)",
     )
     parser.add_argument(
         "--temp-dir",
@@ -74,7 +74,7 @@ def parse_cli_args():
         default="INFO",
         help="Specifies what to include in log output. Available levels: debug, info, error, fatal",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def configure_logging(log_level: str):
@@ -128,7 +128,7 @@ def run_cli():
         profile_dir=args.profile_dir,
         headless=headless,
         temp_dir=args.temp_dir,
-        propagate_deletes=args.propagate_deletes,
+        keep_deleted=args.keep_deleted,
     )
 
     logging.info("")
